@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KANI OFFLINE MAP</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#101b24;color:white;font-family:Arial,sans-serif}
+header{background:#172b3a;padding:15px;text-align:center;font-size:20px;font-weight:bold}
+#map{width:100%;height:62vh;background:#26343b;position:relative;overflow:hidden;touch-action:none}
+#tiles{position:absolute;inset:0}.tile{position:absolute;width:256px;height:256px}
+#marker{position:absolute;width:15px;height:15px;border-radius:50%;background:#168cff;border:3px solid white;display:none;transform:translate(-50%,-50%);z-index:5}
+button{padding:12px;margin:4px;border:0;border-radius:8px;background:#28505e;color:white;font-size:14px}
+button:active{background:#49c5b6}.controls{padding:8px;text-align:center}
+#status{padding:10px;color:#49c5b6}#history{padding:10px;background:#192a36}
+.small{font-size:12px;color:#c6d5dd}
+</style>
+</head>
+<body>
+<header>🛰️ KANI OFFLINE MAP</header>
+<div id="map"><div id="tiles"></div><div id="marker"></div></div>
+<div class="controls">
+<button onclick="zoomIn()">＋ Zoom In</button><button onclick="zoomOut()">－ Zoom Out</button>
+<button onclick="getLocation()">📍 My Location</button>
+</div>
+<div class="controls">
+<button onclick="startTracking()">▶ START TRACKING</button>
+<button onclick="stopTracking()">■ STOP TRACKING</button>
+</div>
+<div class="controls">
+<button onclick="showHistory()">📅 Location History</button>
+<button onclick="exportHistory()">💾 Export Data</button>
+</div>
+<div id="status">GPS: Waiting...</div>
+<div id="history"><h3>Location History</h3><div id="historyList"></div></div>
+<script>
+let zoom=13,centerLat=22.25,centerLon=94.85,watchID=null,currentLocation=null;
+let historyData=JSON.parse(localStorage.getItem("kani_history")||"{}");
+function world(lat,lon,z){let n=2**z;let x=(lon+180)/360*n;let y=(1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n;return{x:x*256,y:y*256}}
+function renderMap(){
+ const map=document.getElementById("map"),tiles=document.getElementById("tiles");tiles.innerHTML="";
+ const c=world(centerLat,centerLon,zoom),left=c.x-map.clientWidth/2,top=c.y-map.clientHeight/2;
+ const minX=Math.floor(left/256),maxX=Math.floor((left+map.clientWidth)/256),minY=Math.floor(top/256),maxY=Math.floor((top+map.clientHeight)/256),n=2**zoom;
+ for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){if(y<0||y>=n)continue;let xx=((x%n)+n)%n,img=document.createElement("img");img.className="tile";img.src=`tiles/${zoom}/${xx}/${y}.jpg`;img.style.left=(x*256-left)+"px";img.style.top=(y*256-top)+"px";img.onerror=()=>img.remove();tiles.appendChild(img)}
+ if(currentLocation){let p=world(currentLocation.lat,currentLocation.lon,zoom),m=document.getElementById("marker");m.style.left=(p.x-left)+"px";m.style.top=(p.y-top)+"px";m.style.display="block"}
+}
+function zoomIn(){zoom=Math.min(19,zoom+1);renderMap()}function zoomOut(){zoom=Math.max(2,zoom-1);renderMap()}
+function applyLocation(lat,lon,accuracy){currentLocation={lat,lon};centerLat=lat;centerLon=lon;document.getElementById("status").innerText=`GPS ရရှိပါပြီ · ±${Math.round(accuracy||0)} m`;renderMap()}
+window.onNativeLocation=(lat,lon,accuracy)=>{applyLocation(lat,lon,accuracy);if(watchID!==null){let d=new Date(),day=d.toISOString().slice(0,10);(historyData[day]??=[]).push({lat,lon,time:d.toISOString()});localStorage.setItem("kani_history",JSON.stringify(historyData));}};
+function getLocation(){if(window.AndroidGPS){AndroidGPS.getLocation();return}if(!navigator.geolocation){alert("GPS မရနိုင်ပါ");return}navigator.geolocation.getCurrentPosition(p=>applyLocation(p.coords.latitude,p.coords.longitude,p.coords.accuracy),e=>alert(e.message),{enableHighAccuracy:true})}
+function startTracking(){watchID=1;if(window.AndroidGPS){AndroidGPS.startTracking();document.getElementById("status").innerText="GPS Tracking လုပ်နေသည်";return}if(!navigator.geolocation)return;let id=navigator.geolocation.watchPosition(p=>window.onNativeLocation(p.coords.latitude,p.coords.longitude,p.coords.accuracy),e=>document.getElementById("status").innerText=e.message,{enableHighAccuracy:true,maximumAge:5000});watchID=id}
+function stopTracking(){if(window.AndroidGPS)AndroidGPS.stopTracking();else if(typeof watchID==="number"&&watchID!==1)navigator.geolocation.clearWatch(watchID);watchID=null;document.getElementById("status").innerText="Tracking ရပ်လိုက်ပါပြီ"}
+function showHistory(){let list=document.getElementById("historyList");list.innerHTML="";Object.keys(historyData).sort().reverse().forEach(date=>{let b=document.createElement("button");b.innerText=date;b.onclick=()=>{let p=historyData[date]?.[0];if(p){currentLocation=p;centerLat=p.lat;centerLon=p.lon;renderMap()}};list.appendChild(b)})}
+function exportHistory(){let blob=new Blob([JSON.stringify(historyData,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kani_history.json";a.click();URL.revokeObjectURL(a.href)}
+renderMap();
+</script>
+</body></html>
