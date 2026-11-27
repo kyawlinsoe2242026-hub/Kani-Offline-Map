@@ -1,4 +1,3 @@
-
 package com.kani.offlinemap
 
 import android.Manifest
@@ -6,12 +5,15 @@ import android.app.Activity
 import android.os.Bundle
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebChromeClient
 import android.webkit.JavascriptInterface
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.content.Context
+import android.webkit.WebSettings
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 
 class MainActivity : Activity() {
@@ -23,15 +25,29 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         webView = WebView(this)
+
         locationManager =
             getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            loadsImagesAutomatically = true
+            allowFileAccess = true
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        }
+
         webView.webViewClient = WebViewClient()
-        webView.addJavascriptInterface(GPSBridge(), "AndroidGPS")
+        webView.webChromeClient = WebChromeClient()
+
+        webView.addJavascriptInterface(
+            GPSBridge(),
+            "AndroidGPS"
+        )
 
         setContentView(webView)
+
         webView.loadUrl("file:///android_asset/index.html")
     }
 
@@ -64,6 +80,7 @@ class MainActivity : Activity() {
     }
 
     private fun requestGPS() {
+
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -89,6 +106,7 @@ class MainActivity : Activity() {
     }
 
     private fun sendLocation(location: Location) {
+
         val lat = location.latitude
         val lon = location.longitude
         val accuracy = location.accuracy
@@ -107,7 +125,9 @@ class MainActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(
-            requestCode, permissions, grantResults
+            requestCode,
+            permissions,
+            grantResults
         )
 
         if (requestCode == 100 &&
