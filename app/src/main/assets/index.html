@@ -1,14 +1,9 @@
-<!DOCTYPE html>
-<html lang="my">
+<!DOCTYPE html><html lang="my">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KANI OFFLINE MAP</title>
-
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
-<style>
+<title>KANI OFFLINE MAP</title><link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><style>
 *{box-sizing:border-box}
 
 body{
@@ -53,33 +48,19 @@ button{
  font-size:14px;
  line-height:1.8;
 }
-</style>
-</head>
-
-<body>
-
-<header>KANI OFFLINE MAP</header>
-
-<div id="map"></div>
-
-<div class="controls">
+</style></head><body><header>KANI OFFLINE MAP</header><div id="map"></div><div class="controls">
 <button onclick="getLocation()">📍 My Location</button>
 <button onclick="startTracking()">▶ Start Tracking</button>
 <button onclick="stopTracking()">⏹ Stop</button>
 <button onclick="exportHistory()">📥 Export</button>
 <button onclick="clearHistory()">🗑 Clear History</button>
-</div>
-
-<div class="info">
+</div><div class="info">
 <div id="status">GPS: Waiting...</div>
 <div id="coordinates">Latitude: -- | Longitude: --</div>
 <div id="zoom">Zoom: 13</div>
 <div id="historyCount">History: 0</div>
-</div>
+</div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
 const map = L.map('map').setView([22.25,94.85],13);
 
 let currentMarker=null;
@@ -90,12 +71,31 @@ let history=JSON.parse(
  localStorage.getItem('kani_history')||'[]'
 );
 
+// SATELLITE MAP
 L.tileLayer(
- 'tiles/{z}/{x}/{y}.jpg',
+ 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
  {
-  minZoom:13,
+  minZoom:2,
   maxZoom:19,
-  attribution:'KANI OFFLINE MAP'
+  attribution:'Tiles © Esri'
+ }
+).addTo(map);
+
+// PLACE NAMES AND BOUNDARIES
+L.tileLayer(
+ 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+ {
+  maxZoom:19,
+  attribution:'Esri'
+ }
+).addTo(map);
+
+// ROADS AND STREET NAMES
+L.tileLayer(
+ 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+ {
+  maxZoom:19,
+  attribution:'Esri'
  }
 ).addTo(map);
 
@@ -110,6 +110,7 @@ function updateHistoryCount(){
 }
 
 function saveLocation(lat,lon,accuracy){
+
  const item={
   latitude:lat,
   longitude:lon,
@@ -255,7 +256,5 @@ function clearHistory(){
 
 updateHistoryCount();
 
-</script>
-
-</body>
+</script></body>
 </html>
